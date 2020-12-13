@@ -4,7 +4,6 @@ pygame.init()
 
 from tile import Tile
 # 8 by 8, 16 by 16 -> 16 by 30
-
 # 32 pixel gap at top
 # 32 + 16 * 8
 
@@ -18,22 +17,22 @@ GRAY = (220,220,220)
 SILVER = (192,192,192)
 
 tile_size = 32
-top_gap = tile_size * 2
+board_top_gap = tile_size * 4
 easy_rows = easy_cols = 8
 medium_rows = medium_cols = 16
 hard_rows,hard_cols = 16,30
 
-
 def create_board(rows,cols):
 
 
-    board = [[Tile(col*tile_size,top_gap + row * tile_size,tile_size) for col in range(cols)] for row in range(rows)]
+    board = [[Tile(col*tile_size,board_top_gap + row * tile_size,tile_size) for col in range(cols)] for row in range(rows)]
     
     tiles = pygame.sprite.Group()
     for row in range(rows):
         for col in range(cols):
             tiles.add(board[row][col])
-
+    
+    
     return board,tiles
 
 
@@ -115,11 +114,11 @@ def menu():
                 
 
                 if easy_text_rect.collidepoint(coordinate):
-                    game(tile_size * easy_rows,tile_size * easy_cols + top_gap,easy_rows,easy_cols)
+                    game(tile_size * easy_cols,tile_size * easy_rows + board_top_gap,easy_rows,easy_cols)
                 elif medium_text_rect.collidepoint(coordinate):
-                    game(tile_size * medium_rows,tile_size * medium_cols + top_gap,medium_rows,medium_cols)
+                    game(tile_size * medium_cols,tile_size * medium_rows + board_top_gap,medium_rows,medium_cols)
                 elif hard_text_rect.collidepoint(coordinate):
-                    game(tile_size * hard_cols,tile_size * hard_rows + top_gap,hard_rows,hard_cols)
+                    game(tile_size * hard_cols,tile_size * hard_rows + board_top_gap,hard_rows,hard_cols)
 
                 screen = pygame.display.set_mode((menu_width,menu_height))
 
