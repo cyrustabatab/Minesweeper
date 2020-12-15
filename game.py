@@ -1,4 +1,5 @@
 import pygame,sys
+import random
 
 pygame.init()
 
@@ -22,11 +23,29 @@ easy_rows = easy_cols = 8
 medium_rows = medium_cols = 16
 hard_rows,hard_cols = 16,30
 
-def create_board(rows,cols):
+def create_board(rows,cols,num_mines):
 
 
     board = [[Tile(col*tile_size,board_top_gap + row * tile_size,tile_size) for col in range(cols)] for row in range(rows)]
     
+    
+    rows_cols = [(row,col) for row in range(rows) for col in range(cols)]
+
+
+
+    for _ in range(num_mines):
+        row_col = random.choice(rows_cols)
+        row,col = row_col
+        board[row][col].mark_mine()
+
+        rows_cols.remove(row_col)
+
+
+
+
+
+
+
     tiles = pygame.sprite.Group()
     for row in range(rows):
         for col in range(cols):
@@ -45,13 +64,20 @@ def game(screen_width,screen_height,rows,cols,mines=10):
 
     screen = pygame.display.set_mode((screen_width,screen_height))
 
-    board,tiles = create_board(rows,cols)
+    board,tiles = create_board(rows,cols,mines)
     while True:
 
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
+            
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                point = pygame.mouse.get_pos()
+                for tile in tiles:
+                    if tile.clicked_on(point):
+                        break
+
 
 
         screen.fill(SILVER)
