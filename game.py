@@ -120,10 +120,15 @@ def uncover_board(board,tile):
 
 
 def game(screen_width,screen_height,rows,cols,mines):
-
+    
+    
+    font = pygame.font.SysFont("comicsansms",20)
     screen = pygame.display.set_mode((screen_width,screen_height))
+    game_over_text = font.render(f"GAME OVER",True,RED)
+    game_over_text_x,game_over_text_y = screen_width//2 - game_over_text.get_width()//2,20
 
     board,tiles = create_board(rows,cols,mines)
+    game_over = False
     while True:
 
 
@@ -131,13 +136,13 @@ def game(screen_width,screen_height,rows,cols,mines):
             if event.type == pygame.QUIT:
                 return
             
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if not game_over and event.type == pygame.MOUSEBUTTONDOWN:
                 point = pygame.mouse.get_pos()
                 for tile in tiles:
                     if event.button == 1:
                         if tile.clicked_on(point):
                             if tile.is_mine:
-                                print("GAME OVER")
+                                game_over = True
                             elif tile.neighboring_mines == 0:
                                 uncover_board(board,tile)
                             break
@@ -148,6 +153,8 @@ def game(screen_width,screen_height,rows,cols,mines):
 
 
         screen.fill(SILVER)
+        if game_over:
+            screen.blit(game_over_text,(game_over_text_x,game_over_text_y))
         tiles.draw(screen)
         pygame.display.update()
 
