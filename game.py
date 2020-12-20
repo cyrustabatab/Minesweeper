@@ -1,5 +1,7 @@
 import pygame,sys
 import random
+import pdb
+import time
 
 pygame.init()
 
@@ -31,17 +33,16 @@ easy_mines,medium_mines,hard_mines = 10,40,99
 
 def count_neighbor_mines(board,row,col):
 
-    count =0
+    count = 0
     for row_diff in (-1,0,1):
         for col_diff in (-1,0,1):
             if row_diff ==0 and col_diff == 0:
                 continue
             
-            try:
+
+            if 0 <= row + row_diff < len(board) and 0 <= col + col_diff < len(board[0]):
                 if board[row + row_diff][col + col_diff].is_mine:
                     count += 1
-            except:
-                pass
 
     return count
 
@@ -63,7 +64,11 @@ def create_board(rows,cols,num_mines):
         rows_cols.remove(row_col)
 
 
-
+    board[0][0].mark_mine()
+    try:
+        rows_cols.remove((0,0))
+    except:
+        pass
 
 
 
@@ -75,10 +80,11 @@ def create_board(rows,cols,num_mines):
                 mines = count_neighbor_mines(board,row,col)
                 if mines != 0:
                     board[row][col].set_number(mines)
+            #board[row][col].uncover()
             tiles.add(board[row][col])
     
     
-    return board,tiles
+    return board,tiles,rows_cols
 
 
 
@@ -122,29 +128,94 @@ def uncover_board(board,tile):
 def game(screen_width,screen_height,rows,cols,mines):
     
     
+    def replace_with_non_mine(tile):
+
+        tile.is_mine = False
+        row,col = random.choice(empty_spaces)
+        other_tile = board[row][col]
+        other_tile.mark_mine()
+
+        
+
+        two_tiles = [tile,other_tile]
+        change_amounts = [-1,1]
+        
+        for i,(tile,change_amount) in enumerate(zip(two_tiles,change_amounts)):
+            if i == 0:
+                mines = 0
+
+            row,col = tile.row,tile.col
+
+            for x_diff in (-1,0,1):
+                for y_diff in (-1,0,1):
+                    if x_diff == 0 and y_diff == 0:
+                        continue
+
+                    if 0 <= row + x_diff < rows and 0 <= col + y_diff < cols:
+                        neighbor_tile = board[row + x_diff][col + y_diff]
+                        if not neighbor_tile.is_mine:
+                            neighbor_tile.set_number(neighbor_tile.neighboring_mines + change_amount)
+                        elif i == 0:
+                            mines += 1
+            
+            if i == 0:
+                tile.set_number(mines)
+
+
+
+    def uncover_all_mines():
+
+
+        for tile in tiles:
+            tile.uncover()
+            
+
+
+
+
+
+
+        
+
+    
     font = pygame.font.SysFont("comicsansms",20)
     screen = pygame.display.set_mode((screen_width,screen_height))
     game_over_text = font.render(f"GAME OVER",True,RED)
     game_over_text_x,game_over_text_y = screen_width//2 - game_over_text.get_width()//2,20
 
-    board,tiles = create_board(rows,cols,mines)
+    board,tiles,empty_spaces = create_board(rows,cols,mines)
     game_over = False
+    first_move = True
+
     while True:
 
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
-            
+            if game_over and event.type == pygame.KEYDOWN:            
+                if event.key == pygame.K_RETURN:
+                    board,tiles,empty_spaces = create_board(rows,cols,mines)
+                    first_move = True
+                    game_over = False
+
             if not game_over and event.type == pygame.MOUSEBUTTONDOWN:
                 point = pygame.mouse.get_pos()
                 for tile in tiles:
                     if event.button == 1:
                         if tile.clicked_on(point):
                             if tile.is_mine:
-                                game_over = True
+                                if first_move:
+                                    replace_with_non_mine(tile)
+                                    tile.image = tile.hidden_image
+                                    if tile.neighboring_mines == 0:
+                                        uncover_board(board,tile)
+                                else:
+                                    game_over = True
+                                    uncover_all_mines()
                             elif tile.neighboring_mines == 0:
                                 uncover_board(board,tile)
+                            first_move = False
                             break
                     elif event.button == 3:
                         if tile.set_flag(point):

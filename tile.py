@@ -48,7 +48,10 @@ class Tile(pygame.sprite.Sprite):
         self.clicked = False
         self.flagged = False
         self.neighboring_mines = 0
+    
 
+    def reset_image(self):
+        self.image = self.block_image
 
     def mark_mine(self):
         self.is_mine = True
@@ -60,7 +63,10 @@ class Tile(pygame.sprite.Sprite):
     def set_number(self,number):
 
         self.neighboring_mines = number
-        self.hidden_image = self.number_to_image[number]
+        if number in self.number_to_image:
+            self.hidden_image = self.number_to_image[number]
+        else:
+            self.hidden_image = self.empty_image
         if self.tile_size != 16:
             self.hidden_image = pygame.transform.scale(self.hidden_image,(self.tile_size,self.tile_size))
 
