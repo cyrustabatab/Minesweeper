@@ -22,6 +22,7 @@ BLACK = (0,0,0)
 RED = (255,0,0)
 GRAY = (220,220,220)
 SILVER = (192,192,192)
+GREEN = (0,255,0)
 
 tile_size = 32
 board_top_gap = tile_size * 4
@@ -29,6 +30,8 @@ easy_rows = easy_cols = 8
 medium_rows = medium_cols = 16
 hard_rows,hard_cols = 16,30
 easy_mines,medium_mines,hard_mines = 10,40,99
+
+explosion_sound = pygame.mixer.Sound("assets/explosion.wav")
 
 
 def count_neighbor_mines(board,row,col):
@@ -64,11 +67,6 @@ def create_board(rows,cols,num_mines):
         rows_cols.remove(row_col)
 
 
-    board[0][0].mark_mine()
-    try:
-        rows_cols.remove((0,0))
-    except:
-        pass
 
 
 
@@ -97,6 +95,8 @@ def uncover_board(board,tile):
         
         visited.add((row,col))
 
+
+        count = 1
         for row_diff in (-1,0,1):
             for col_diff in (-1,0,1):
                 if row_diff == 0 and col_diff == 0:
@@ -107,11 +107,14 @@ def uncover_board(board,tile):
                     if 0 <= neighbor_row < len(board) and 0 <= neighbor_col < len(board[0]):
 
                         tile = board[neighbor_row][neighbor_col]
-                        tile.uncover()
                         if tile.neighboring_mines == 0:
-                            uncover_helper(board,neighbor_row,neighbor_col,visited)
+                            count += uncover_helper(board,neighbor_row,neighbor_col,visited)
+                        elif not tile.clicked:
+                            count += 1
+                        tile.uncover()
 
 
+        return count
 
 
                     
@@ -121,7 +124,7 @@ def uncover_board(board,tile):
 
     visited = set()
     row,col = tile.row,tile.col
-    uncover_helper(board,row,col,visited)
+    return uncover_helper(board,row,col,visited)
 
 
 
@@ -167,7 +170,8 @@ def game(screen_width,screen_height,rows,cols,mines):
 
 
         for tile in tiles:
-            tile.uncover()
+            if tile.is_mine:
+                tile.uncover()
             
 
 
@@ -175,18 +179,21 @@ def game(screen_width,screen_height,rows,cols,mines):
 
 
 
-        
+    mines_to_uncover = rows * cols - mines        
 
     
     font = pygame.font.SysFont("comicsansms",20)
     screen = pygame.display.set_mode((screen_width,screen_height))
     game_over_text = font.render(f"GAME OVER",True,RED)
+    win_text = font.render("YOU WIN",True,GREEN)
+    enter_text = font.render("Press ENTER to play again",True,BLACK)
+    message = None
     game_over_text_x,game_over_text_y = screen_width//2 - game_over_text.get_width()//2,20
 
     board,tiles,empty_spaces = create_board(rows,cols,mines)
     game_over = False
     first_move = True
-
+    uncovered = 0
     while True:
 
 
@@ -196,6 +203,7 @@ def game(screen_width,screen_height,rows,cols,mines):
             if game_over and event.type == pygame.KEYDOWN:            
                 if event.key == pygame.K_RETURN:
                     board,tiles,empty_spaces = create_board(rows,cols,mines)
+                    uncovered = 0
                     first_move = True
                     game_over = False
 
@@ -208,14 +216,24 @@ def game(screen_width,screen_height,rows,cols,mines):
                                 if first_move:
                                     replace_with_non_mine(tile)
                                     tile.image = tile.hidden_image
-                                    if tile.neighboring_mines == 0:
-                                        uncover_board(board,tile)
                                 else:
+                                    explosion_sound.play()
+                                    message = game_over_text
                                     game_over = True
                                     uncover_all_mines()
-                            elif tile.neighboring_mines == 0:
-                                uncover_board(board,tile)
-                            first_move = False
+
+                            if not tile.is_mine and tile.neighboring_mines == 0:
+                                uncovered += uncover_board(board,tile)
+                            elif not tile.is_mine:
+                                uncovered += 1
+
+                            if uncovered == mines_to_uncover:
+                                game_over = True
+                                message = win_text
+                                uncover_all_mines()
+
+                            if first_move:
+                                first_move = False
                             break
                     elif event.button == 3:
                         if tile.set_flag(point):
@@ -225,7 +243,8 @@ def game(screen_width,screen_height,rows,cols,mines):
 
         screen.fill(SILVER)
         if game_over:
-            screen.blit(game_over_text,(game_over_text_x,game_over_text_y))
+            screen.blit(message,(screen_width//2 - message.get_width()//2,game_over_text_y))
+            screen.blit(enter_text,(screen_width//2 - enter_text.get_width()//2,game_over_text_y + message.get_height() + 20))
         tiles.draw(screen)
         pygame.display.update()
 
